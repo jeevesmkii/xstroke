@@ -1,0 +1,124 @@
+xstroke - full-screen gesture recognition for X
+
+Copyright (C) 2000 Carl Worth
+
+xstroke is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+Comments are welcome.
+
+What is xstroke?
+----------------
+xstroke is a gesture recognition program. Performing known gestures in
+the xstroke window, (using a stylus, mouse, or other ppointer), will
+cause actions to be performed, (most commonly to send character events
+to the currently focused window). The known strokes actions and there
+corresponding actions are defined in the ${HOME}/.xstrokerc file
+described below. The underlying recognizer uses a 3X3 grid,
+(originally inspired by libstroke, but now an independent
+implementation).
+
+This is the first release of xstroke, (version 0.1), and it should be
+considered alpha-quality, (expecially the build environment, or lack
+thereof, and documentation). I've found xstroke to be useful and
+usable personally, but I have no idea if anyone else will. Also, I did
+the X programming in Xlib, (as opposed to Xt or some other toolkit),
+as a learning exercise. I'm new to X programming, so there may be some
+rough spots.
+
+What does xstroke depend on?
+----------------------------
+To compile xstroke you will need:
+	X
+	A C compiler
+
+To generate the diagrams of known strokes you will need:
+	perl
+	Metapost, (part of the texmf distribution)
+
+Compiling xstroke
+-----------------
+If you would like to compile xstroke, simply edit the Makefile to
+point to correct locations for X and type make. (Yes, this is a
+primitive build environment -- something fancy like autoconf will come
+in a future release).
+
+To install, copy xstroke to a directory on your path and copy the
+default xstrokerc file to ${HOME}/.xstrokerc.
+
+Using xstroke
+-------------
+The xstrokerc file included with this version of xstroke defines an
+alphabet for all lowercase/capital letters, all numbers, and all
+punctuation that is on my keyboard, (pc104 US), including Space,
+BackSpace, Return, Tab, Escape and the four cursor arrows. It does not
+define any accented characters, (although anyone could add
+these). Also, xstroke does not yet support modifier keys. (Note: You
+can put a modifier key specification in the configuration file, but
+currently it will just send a single KeyPress event followed by a
+KeyRelease event for that key, just as it does with all other keys. So
+this is not very useful for entering modified keys using strokes.) The
+next release of xstroke will include support for modifiers.
+
+To use xstroke, simply stroke into its window. For each recognized
+stroke, a KeyPress and a KeyRelease event will be sent to the window
+that has focus.
+
+Look at the doc/alphabet.ps file to see what the currently defined
+strokes are. This document can be regenerated from ${HOME}/.xstrokerc
+to include any customized strokes, see doc/generate_diagrams.pl as
+well as doc/Makefile.
+
+What alphabet is this?
+----------------------
+The default alphabet in xstrokerc is an original alphabet that I
+created. I made many strokes similar to the strokes in the program
+xscribble. The big difference in my alphabet is that I do not use any
+shift modes, (capitals, num-shift, punc-shift, etc). Instead, I have
+all letters, numbers, and punctuation defined in a single alphabet. To
+do this, I've implemented capital letters as strokes just like the
+corresponding lowercase stroke, but with the last line segment
+repeated in the opposit direction. For example, the capital 'L' stroke
+goes down, to the right, then back to the left, (1478987). Most
+numbers, (except 6, 8, and 9), are drawn in reverse to distinguish
+them from letters. My punctuation alphabet is largely custom. The
+alphabet also includes many strokes shaped like lowercase letters, (b,
+d, e, etc.) that do not exist in xscribble.
+
+See doc/alphabet.ps for a more exact depiction of the alphabet.
+
+Also, see doc/xstroke_vs_xscribble if you are interested in how this
+alphabet differs from xscribble's.
+
+Will you add support for modes?
+-------------------------------
+I plan to make a future release of xstroke that will support
+modes. Then, anyone that cares to could implement their favorite modal
+alphabet.
+
+Can I make my own strokes?
+--------------------------
+The xstroke configuration file, (${HOME}/.xstrokerc), defines strokes
+and actions to be performed when the stroke is entered. Currently, the
+only supported action is to send a KeyPress and KeyRelease event to
+the currently focused window. Future releases of xstroke will add
+support for addition actions including sending strings of characters,
+(macro expansion), as well as executing commands. See the
+doc/configuration file for an explanation of the syntax of
+${HOME}/.xstrokerc or just dive in and figure it out!
+
+Well, that's about it. Feel free to send me comments, suggestions, or
+bug fixes.
+
+-Carl Worth <cworth@east.isi.edu>

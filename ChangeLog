@@ -1,0 +1,522 @@
+2004-07-26  Phil Blundell  <pb@nexus.co.uk>
+
+	* control_win.c (window_wants_recognition): Default recognition to
+	on, unless window has selected for PointerMotion events.
+
+2004-07-20  Phil Blundell  <pb@nexus.co.uk>
+
+	* Makefile.am (xstroke_SOURCES): Mention lex/yacc sources, not
+	generated .c files.
+
+2004-04-02  Carl Worth  <cworth@east.isi.edu>
+
+	* NEWS: Added notes for 0.6 release.
+
+	* configure.ac: Don't require xtst to be found via
+	pkg-config. Throw in AC_PATH_XTRA for good measure, (or is it
+	redundant with the pkg-config check for xft?).
+
+	* args.h (ARGS_FALLBACK_ALPHABET): Respect configure-controlled
+	location for configuration files.
+
+	* Makefile.am (xstroke_SOURCES): Alphabetized and added missing .h
+	files (needed to pass make distcheck).
+	(AM_CFLAGS): Use configure-controlled configuration directory.
+	(config_DATA): Use standard rule to install config file, (or else
+	make distcheck fails with permission denied)
+
+	* .cvsignore: Added all the autotools-generated cruft.
+
+2004-03-29  Philip Blundell  <philb@gnu.org>
+
+	Convert to autotools:
+	* autogen.sh, configure.ac, Makefile.am, NEWS: New.
+	* Imakefile, etc/Imakefile: Deleted.
+
+2002-02-02  Carl Worth  <cworth@east.isi.edu>
+
+	* control_win.c: Removed a couple of bogus grab_pointer calls
+
+	* control_win.c: Fixed two big bugs: Mouse events from a grab
+	pass-through were being prepended to the next stroke. And the grab
+	pass-through timeout was carrying over from one stroke to the
+	next.
+	* xlp_timeout.c: Changed the API for timeouts to include the time
+	at which the timeout was registered, (to enable the bugfix
+	above). This will likely change again in the future.
+
+
+2001-12-10  Carl Worth  <cworth@east.isi.edu>
+
+	* menu/xstroke: Made the menu entry text a bit shorter.
+
+	* rec.c: Added verfication suppport. The -verify option can now be
+	used to verify that a given alphabet file will properly recognize
+	a set of strokes listed in a file. The strokes to be verified can
+	easily be generated with the -lograw option.
+
+	* dir_engine.c: LOTS of progress on the direction-based
+	recognizer. It's still experimental and has not been incorporated
+	into the default alphabet yet, (set etc/alphabet.dir if you want
+	to play with the direction-based recognizer).
+
+	* xlp.c: Added the timeout support to enable tap-and-hold. xlp,
+	(and hence xstroke), now requires pthreads.
+
+	* control_win.c: Finally fixed the mouse-button pass-through code,
+	so a tap-and-hold gesture can now be used to turn xstroke off for
+	a single stroke!
+
+	* args.c: Added -auto and -noauto flags to allow control of the
+	automatic enabling/disabling of xstroke based on the target
+	window.
+
+	* fixed.c: Abstracted out fixed-point code, (used in matrix
+	rotation). Fixed bugs regarding rounding instead of truncating.
+
+2001-10-31  Carl Worth  <cworth@east.isi.edu>
+
+	* Major rework of the way the database is stored and how
+	recognition engines work. Now, all the parsing is handled via
+	flex/bison (aka lex/yacc). The configuration file and stroke
+	database allow for multiple, simultaneous recognition
+	engines. Should be a lot of fun. Because of this the configuration
+	file syntax has changed considerably.
+
+	* args.c: Added the -lr and -lograw options to include raw
+	coordinate/time information in the log file. This should be
+	helpful for putting together a nice collection of strokes that can
+	be fed in for testing new recognition engines.
+
+	* Compiled with dmalloc and removed several memory leaks. I
+	destroyed the stroke database and recreated it from the
+	configuration file about 100,000 times without seeing memory usage
+	increase at all, (as reported by top).
+
+	* control_win.c: Commented out all of the tap-and-hold support
+	since I can't get the grab pass-through to work yet. :-(	
+
+	* anchor_engine.c: Added a new "anchor" engine for anchoring
+	strokes to screen-edges and corners. See the new xstroke-help
+	stroke definition in etc/alphabet for an example of usage.
+
+	* dir_engine.c: Started experimenting with a recognizer based on
+	slopes, (the same one I implemented a while ago). Don't have
+	anything usable yet, but I think I know how I am going to get this
+	to work. (The only trick is how to filter things to get a nice
+	canonical slope signature out of a stroke. I think that looking at
+	a window of (5?) points to establish slope samples, and then
+	sliding a window (what size?) over the slope samples and going
+	with the majority might work quite well. Note that the code
+	doesn't quite do this yet).
+
+	* option.c: Added a new section to the config file so that options
+	that are specific to recognition engines can be set there. This
+	pushes several #defined values into the configuration file so that
+	users can play with the parameters without recompiling. For
+	example, the grid engine's TapDrift parameter is now an option in
+	the config file.
+
+	* rec.c: Changed the way the global mode, (ie. for strokes not
+	restricted to a specific mode in the config file), works. It is
+	now truly global, (ie. it takes precedence over stroke defined
+	within any given mode). The new special mode named "__FALLBACK__"
+	gives the old behavior, (ie. strokes that will be examined only if
+	nothing is found that matches in the current mode).
+
+	* stroke.c: The stroke object now keeps track of which points were
+	actually sampled and which were merely interpolated between
+	samples. Interpolation is still simply piece-wise linear.
+
+	* Several dozen other things I'm sure that I am forgetting. (This
+	is a really big commit).
+
+2001-10-09  Carl Worth  <cworth@east.isi.edu>
+
+	* Fixed return values all over the place to be more meaningful,
+	(ENOMEM, etc.)
+
+	* args.c: Added a -hold parameter to control the timeout for
+	tap-and-hold.
+
+2001-10-08  Carl Worth  <cworth@east.isi.edu>
+
+	* control_win.c: Used the new XLP timeout functionality to
+	implement a tap-and-hold to disable recognition. It almost works,
+	but using XTestFakeKeyButton in this way is trashing the grabs in
+	X, (requiring a restart of X to fix it). We'll see what the Xperts
+	at XFree86.Org have to say about this.
+
+	* xlp.c: Major rework of all of XLP to enable registering of
+	timeout callbacks. Now the "main_loop" of xlp is actually two
+	POSIX threads. One handles all of the X events, the other takes
+	care of timeouts. Both synchronize via XSync and a mutex
+	protecting the dpy variable. I'm not enamored with the
+	implementation, wo it'll likely change. But it does appear to be
+	working.
+
+	* xstroke.c: Fixed all button/motion events to use x_root/y_root
+	instead of x/y, (otherwise strokes went funny if they were over
+	the control window when in was not at the origin).
+
+2001-10-05  Carl Worth  <cworth@east.isi.edu>
+
+	* Released 0.5.10
+
+	* etc/alphabet: Made a few minor stroke improvements contributed
+	by Ken Steele.
+
+	* control_win.c: Fixed grab handling to correctly use AsyncPointer
+	in XAllowEvents, and to not terminate the stroke until all buttons
+	are released.
+
+2001-10-04  Carl Worth  <cworth@east.isi.edu>
+
+	* control_win.c: Consolidated all mouse grabbing code into
+	control_win.c (pulled some out of xstroke.c)
+
+	* control_win.c: Changed the controlling property from
+	XSTROKE_PROTOCOLS to RECOGNIZE_PROTOCOLS.
+
+	* xstroke.c: Added the -b/-button option to control which button
+	xstroke grabs.
+
+2001-10-02  Carl Worth  <cworth@east.isi.edu>
+
+	* control_win.c: Added examination of a property so that apps can
+	override the default behavior of xstroke. With this code, and a
+	little hack to rxvt to set the property, I can now use xstroke
+	with rxvt once again. Hurrah! Note that the property name will
+	definitely be changing very soon.
+
+	* control_win.c: Added fancy new code to automatically chase down
+	windows being stroked on, check the event mask, and only perform
+	recognition if the deepest window is listening for KeyPress or
+	KeyRelease events. With this code xterm's scrollbar, gtk buttons,
+	gtk menus, and gtk scrollbars may all be used without disabling
+	recognition in xstroke. Hurrah! Unfortunately, QT menus and
+	scrollbars don't work, and recognition is completely disabled
+	within rxvt. :(
+	
+	* control: softened the xstroke-help dependency from Depends to
+	Suggests.
+
+	* control_win.c: Changed from an active pointer grab to a passive
+	button grab. The nice benefits include the fact that motion
+	without any button being pressed can still be handled by other
+	apps, (ie. the window manager).
+
+	* control_win.c: Added a pencil cursor used whenever xstroke grabs
+	the pointer.
+
+2001-09-26  Carl Worth  <cworth@east.isi.edu>
+
+	* Released 0.5.8
+
+	* etc/alphabet: Several alphabet fixes suggested by Ken Steele:
+	circles in either direction => '0' in number mode.
+	Return now works in number mode, (I fixed this earlier I think)
+	lazy circles (ie. 'u') => '0' in number mode.
+
+	* xstroke.c (key_action_cb): Fixed Caps_Lock handling for TinyX
+	servers, (unfortunately it's now broken for any Xkb-aware server
+	-- need to fix that someday).
+
+2001-09-25  Carl Worth  <cworth@east.isi.edu>
+
+	* Released 0.5.7
+
+	* stroke.c: Fixed nasty new bugs in stroke bounding box
+	computation introduced by the last bug fix. Sheesh!
+
+	* stroke.c: Fixed bug in computing bounds of stroke after
+	transformation, (width and height are now scaled in the same way
+	as the pixel coordinates).
+
+	* grid_classify.c: Fixed bug that was preventing taps from being
+	recognized properly.
+
+	* etc/alphabet: added several strokes, (recommended by Ken Steele):
+	CW circle in punctuation mode => at
+	lowercase g shape with a loop
+	backwards m => Meta
+	modeshift from 123 => !@#
+	7 with a slanted tail in number mode
+	changed up, right to be 'f'
+	TAB is now up, right, left
+	no letters in punctuation mode
+	number mode now includes punctation (and punctuation from letter mode)
+
+	* grid_parse.c: Better error message on failed include.
+
+	* rec.c: Added logging of mode changes.
+
+2001-09-24  Carl Worth  <cworth@east.isi.edu>
+
+	* rec.c: Fixed adaptive baseline control to use width/height after
+	rotation rather than before rotation.
+
+	* alphabet: stroke for 5 no longer needs initial hat.
+
+	* Released 0.5.6
+
+	* stroke: moved the bounding box computation into stroke_t where
+	min_x, min_y, width, height are now always valid.
+
+	* xstroke: I think the rotation code is now all working. It's
+	enabled by default, but it is restricted to a max rotation of
+	11.25 degrees by default and has no feedback. The -r, -rotate
+	options disable the cap, (and enable feedback when the restriction
+	is exceeded).
+
+	* alphabet: Moved shift strokes to the top of the alphabet.
+
+	* matrix.c: Better handling of fixed-point precision for matrices
+	avoiding some errors that were causing wild translation problems
+	in the rotation correction, (only visible when debugging was
+	enabled).
+
+2001-09-22  Carl Worth  <cworth@east.isi.edu>
+
+	* xstroke: bug fixes for rotation, (not yet complete). Added -r,
+	-rotate, -R, -norotate options. Disabled rotation by default.
+
+	* alphabet: Added 'p' instead of 'R' to
+	[no_capitals_in_lowercase_mode]. Replaced '=' with 'e' in
+	[abc]. (Still need to find a replacement stroke for '=').
+	Fixed the 'w' instead of 'y' clashes.
+
+2001-09-19  Carl Worth  <cworth@east.isi.edu>
+
+	* xstroke.c: Experimental support for automatic inference of
+	baseline orientation. This is probably still full of bugs.
+
+	* args.c: added a nograb option
+	
+	* args.h: changed default font from fixed-8 to mono-8.
+
+	* control_win.c: minor bug fix that control_window status was
+	being redrawn without eing erased first, (hence if it was
+	partially obscured then part of the text would become brighter
+	which looked rather odd).
+
+	* brush.c: softened the shadow a little bit.
+
+	* Released 0.5.5
+	
+	* brush.c: Added support for brushes with drop shadows, (thanks to
+	Keith Packard for the Conjoint and Disjoint operators that made
+	this possible -- as well as for the rendering code).
+
+2001-09-18  Carl Worth  <cworth@east.isi.edu>
+
+	* Released 0.5.4
+
+	* alphabet: slight tweak to 'R' stroke, (many
+	capitals_in_letter_mode are currently broken)
+
+	* rec.c: Fixed stroke lookup to do a depth-first search through
+	ancestors whenever stroke lookup fails. Seems like this is the
+	right thing to do.
+
+	* Released 0.5.3
+
+	* xstroke: Fixed bugs in the RandR support. (It actually works
+	now).
+
+	* xlp_event.c: Fixed some seriously broken event mask selection.
+
+	* Released 0.5.2
+
+	* alphabet: Moved the capitals_in_lowercase_mode into their own
+	mode that can optionally be extended by the [abc] mode. Also added
+	no_capitals_in_lowercase_mode for those that prefer things that
+	way.
+
+	* Released 0.5.1
+
+2001-09-17  Carl Worth  <cworth@east.isi.edu>
+
+	* brush.c: Fixed the bug in interpreting the colors from GIMP
+	images, (meaning the brush I had drawn red in order to appear blue
+	is now back to an ugly red).
+
+	* grid_classify.c: Added TAP_DRIFT parameter to help correctly
+	interpret very short strokes as taps.
+
+	* grid_classify: eliminated buggy static data from
+	grid_classify_stroke.
+
+	* xstroke: Now coorectly sets the initial mode to the first mode
+	found in the config file, (instead of ugly hard-coding to "abc").
+
+	* xstroke: Fixed bug in displaying bogus initial modifier state.
+
+	* xstroke: now loads ~/.xstroke/alphabet by default, (falling back
+	to /etc/xstroke/alphabet if not found).
+
+	* xstroke: added include support to config file syntax.
+
+	* xstroke: fixed mode logic bug. Now if you start in mode A, shift
+	to B, then shift to C, and do a stroke, you will revert to A like
+	you should, (the buggy behavior reverted to B).
+
+	* xstroke: added command-line arguments to control location and
+	amount of logging.
+
+	* xlp_win.c: xlp now takes care of ConfigureNotify so that the
+	x,y,width, and height fields of an xlp_win are always up-to-date.
+
+	* xlp_event.c: Fixed buggy registering of MotionNotify events,
+	(ie. removed unwanted PointerMotionHintMask).
+
+	* xstroke: Fixed drawing bugs when strokes pass over the control
+	window.
+
+2001-09-15  Carl Worth  <cworth@east.isi.edu>
+
+	* xstroke: added logging of recognized and unrecognized strokes to
+	/var/log/xstroke/strokes.log and /var/log/xstroke/errors.log
+	respectively.
+
+	* xstroke: implemented the Exec action, so strokes can now launch
+	programs.
+
+2001-09-14  Carl Worth  <cworth@east.isi.edu>
+
+	* xstroke: added fix to support RandR without leaving garbage on
+	the screen.
+
+	* xstroke: set the input_hint to False again, for non-docking
+	window managers, (this disappeared about the same time the docking
+	hint was added)
+
+	* doc: added missing documentation strokes.
+
+	* doc: started dusting off the document-generation system once
+	again.
+
+	* slight improvement to the mode logic: an unrecognized stroke
+	will now revert to the previous mode after a mode-shift. This
+	assumes that the user thinks of the mode-shift stroke as being
+	*part of* the stroke for the character and will repeat the
+	mode-shift stroke after the unrecognized character. This
+	assumption is true for me. :) We'll see how people like it. Also,
+	mode changes now reset all modifiers.
+
+	* alphabet: Lots more alphabet improvements. Punctuation mode is
+	in place now, as well as numbers/punctuation in letter mode. The
+	only things missing are that +, \, $, and * can not be easily
+	generated when in letter mode.
+
+2001-09-05  Carl Worth  <cworth@east.isi.edu>
+
+	* *Lots* of updates to the default alphabet. All lowercase and
+	capital letters now work extremely well. Shift, Caps_Lock, and a
+	basic number mode are also in place.
+
+	* Fixed some bugs in the handling of Caps_Lock.
+
+	* Updated mode support so that modes may extend other modes. The logic is as follows: Stroke lookup checks the following places returning the first succesfull match: the current mode, each parent mode
+
+	* Moved the mode-handling logic outside of the recognizer and into
+	rec.c.
+
+2001-08-29  Carl Worth  <cworth@east.isi.edu>
+
+	* alphabet: Started converting the alphabet to use the new
+	full-fledged regular expressions. Many strokes that were
+	marginally accurate before, (eg. capital B with intial down-up
+	bar, lowercase d, etc.), are now remarkably accurate. So for, I
+	have converted everything through the letter L.
+
+	* grid_db_re.c: Switched from the tree-based stroke database to a
+	simple list of compiled regular expressions. This is still quite
+	fast, uses much less memory, and enables much more robust stroke
+	definitions.
+
+	* grid_classify.c: Removed the filtering of short digit
+	sequences. This requires stroke specifications to be much more
+	forgiving, (the new regex code helps considerably). But, this also
+	seems to preserve much useful information.
+
+2001-08-27  Carl Worth  <cworth@east.isi.edu>
+
+	* rec_action_list.c: now stores a single key_action, (press),
+	rather than both a press and release. This is to save memory, and
+	can easily be changed back if there is a use for a press-only or
+	release-only keystroke binding.
+	
+	* rec_action.c: some tweaks to save memory, (flags in action_data
+	structures).
+	
+	* grid_engine.c: finished the mode support. Both ModeShift and
+	ModeLock are now working as stroke specifiers in the alphabet
+	file.
+	
+	* grid_engine.c: Split the grid-based recognizer that was in
+	rec_engine_grid.c into several modules, (grid_engine,
+	grid_classify, grid_db_tree, grid_parse).
+	
+	* Imakefile: Switched from raw Makefile to an imake system, (much
+	easier to cross-compile an X application this way).
+
+2001-08-16  Carl Worth  <cworth@east.isi.edu>
+
+	* xstroke.c: Enabled modifiers. Extra fancy display for shift and
+	caps_lock too.
+
+	* xstroke.c: Added support for various type of bindings in the
+	config file, (key, mouse, mode, exec). Only key and mouse are
+	working so far. This means middle-click is now possible!! And the
+	quick-tap mouse click pass-through is now configurable rather than
+	being hard-coded deep in the recognizer.
+	
+	* xstroke.c: Incorporated the original 3X3 recognizer once
+	again. So the new code actually works now --- and with translucent
+	strokes! Also, I rewrote the section of code that had originally
+	come from libstroke.
+
+2001-08-15  Carl Worth  <cworth@east.isi.edu>
+
+	* brush.c: Fixed brush rendering to give uniform intensity over
+	all backgrounds, (currently only works well with a brush that has
+	uniform transparency -- ie. no antialiased edges).
+
+2001-08-14  Carl Worth  <cworth@east.isi.edu>
+
+	* bresenham.c: added Bresenham function for continuous strokes
+
+	* xstroke.c: Complete rewrite of all of xstroke. The code should
+	actually be rather maintainable now. ;-)
+
+	The new xlp functions abstract a lot of the tedium of Xlib
+	programming, (primarily an event dispatcher). Also, xstroke now
+	uses the Render extension to draw translucent strokes as well as
+	antialiased fonts. Also, this version includes docking capability
+	(done at USENIX in July 2001).
+	
+2001-05-23  Carl Worth  <cworth@east.isi.edu>
+
+	* xstroke.c: Fixed xstroke to work with a border, and added a border.
+
+	* xstroke.c: added evil "always on top" functionality
+
+	* xstroke.c: A smattering of code cleanups
+
+	* xstroke.c: fixed the -geometry command-line option
+
+2001-05-22  Carl Worth  <cworth@east.isi.edu>
+
+	* xstroke.c: Backed out the fscrib, Xt frontend. Back to pure Xlib
+	once again!
+
+Release 0.2
+-----------
+Integrated fsrib front-end with the stroke_rec backend from xstroke.
+This gives fstroke, (full-screen xstroke).
+
+Release 0.1
+-----------
+Initial release of xstroke, (stroke in separate window for recognition).
+

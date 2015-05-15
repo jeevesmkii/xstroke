@@ -1,0 +1,10 @@
+xstroke-0.6 (2004-04-02)
+------------------------
+Now builds with the autotools rather than imake.
+
+Now includes configurable options USE_SYSTEM_TRAY and USE_PIXMAPS in
+xstroke.h, (yes it would be better to make configure options for
+these. Volunteers welcome).
+
+There are likely other changes, but we weren't keeping a NEWS file
+before. See ChangeLog for more details.

@@ -1,0 +1,1195 @@
+# alphabet -- xstroke alphabet configuration file
+#
+# xstroke is available from ftp://ftp.handhelds.org/pub/projects/xstroke
+#
+# Rather than hacking this file directly, you probably want to start
+# with a file ~/.xstroke/alphabet that consists of a single line:
+#
+# 	include "/etc/xstroke/alphabet"
+#
+# Then, you may add your custom strokes to that file, (you'll want to
+# add them before the include line so that your custom strokes take
+# precedence over the strokes defined in /etc/xstroke/alphabet).
+
+# Here is a summary of the syntax of this file:
+
+# Blank lines are ignored.
+# Lines beginning with a '#' character are comments and are ignored.
+
+# INCLUDE STATEMENTS:
+#
+# An include statement looks like this: include "/path/to/some/file" It
+# will open and read the file, which should have the same syntax as
+# this file. File may be included to arbitrarily deep levels, but no
+# checks are made to avoid infinite include loops, so Don't Do That.
+
+# MODE DEFINITIONS:
+#
+# The alphabet file consists of a series of mode definitions which
+# will have the following form:
+#
+#	Mode <MODE_NAME> [: <PARENT_MODE_NAME>, ... ]{
+#		<stroke_definition>
+#		...
+#	}
+#
+# Where all mode names are quoted strings.
+#
+# xstroke always has one active mode, (whose name will be displayed in
+# the control window). The user may change the active mode by using
+# ModeShift and ModeLock strokes defined within the active mode, (or
+# one of its parents).
+#
+# There are two mode names that have special meaning: __GLOBAL__ and
+# __FALLBACK__. Strokes defined within the __GLOBAL__ mode take
+# precedence over any strokes defined within the active mode. Strokes
+# defined within __FALLBACK__ are available in all modes, but at a
+# precedence lower than any other stroke within the mode.
+#
+# The logic used to search for recognized strokes is as follows: When
+# the user enters a stroke, a probability is computed for each
+# candidate stroke definition. The stroke definition with the highest
+# probability is then returned. For the purpose of resolving stroke
+# definitions with equal probabilities, the first definition
+# encountered will be returned. Strokes within each mode are searched
+# in the same order they are processed within the alphabet file. Modes
+# are searched in the following order: the __GLOBAL__ mode, the active
+# mode, the parents of the active mode (and recursively, all of their
+# parents in depth-first order), and finally the __FALLBACK__ mode.
+
+# STROKE DEFINITIONS:
+#
+# The meat of the alphabet file is stroke definitions of the form:
+#
+#	<action> = <stroke_regex>
+#
+# where <action> can be any of the following:
+#
+#	Key <keysym>
+#	Button <button number>
+#	ModeShift <mode_name>
+#	ModeLock <mode_name>
+#	Exec <program args...>
+#
+# The Key action emits a key press, (and release), event for the given
+# keysym. You can find keysyms in /usr/include/X11/keysymdef.h, just
+# drop the "XK_" prefix. Modifier keysyms may also be listed and they
+# will do the Right Thing, (ie. they won't immediately cause a key
+# press but will rather modify the next Key stroke).
+#
+# The Button action emits a button press, (and release), event at
+# the location of the pointer at the end of the stroke.
+#
+# The ModeShift action performs a temporary change of the active mode
+# to the given mode. After the next stroke, (whether successful or
+# not), the active mode will revert to the current mode. (Modifier Key
+# actions do not cause the mode to revert).
+#
+# The ModeLock action performs a persistent change of the active mode
+# to the given mode. It will remain in effect until the next ModeLock
+# action.
+#
+# The Exec action will cause the given command to be invoked. The
+# command will be executed using /bin/sh so shell tricks are
+# available.
+#
+# <stroke_regex> is a modern regular expression (see regex(7))
+# consisting primarily of the digits '1'-'9'. The regular expression
+# describes the stroke as a path along a 3x3 grid with each cell
+# numbered from 1 to 9 as shown here:
+#
+#        1 2 3
+#        4 5 6
+#        7 8 9
+#
+# The extents of the grid will be automatically inferred based on the
+# bounding box of the input stroke. This makes xstroke robust to many
+# stroke distortions including translation and independent scaling
+# along the X and Y axes.
+#
+# For example, an intuitive stroke for the letter L might be:
+#
+#	Key L = grid ( "14789" )
+#
+# Notice that the digits 14789 trace out an 'L' shape in the 3X3 grid
+# above. This simple stroke is sufficient for defining an basic L, but
+# if you start getting sloppy with your L stroke you might miss the
+# lower-left corner of the grid and end up with 1489. The regular
+# expression syntax makes it easy(?) to define robust strokes by
+# accounting for this slop. For example, you could make the 7 optional
+# like so:
+#
+#	Key L = grid ( "147?89" )
+#
+# Similarly, character classes within brackets, (`[' and `]'), allow a
+# stroke to pass through any of the cells listed within brackets. For
+# example, the Return stroke which is a diagonal line form the
+# upper-right to the lower left is defined as:
+#
+#	Key Return  = grid ( "3[26]?5[48]?7?" )
+#
+# For more complex examples, see below. ie. take a look at how nasty
+# the B stroke is. ;-D
+#
+# Feel free to let me know any comments/suggestions you might have.
+# Have fun!
+#
+# -Carl Worth <cworth@handhelds.org>
+
+# Engine dir {}
+# Engine dir_raw {}
+
+Engine grid {
+	Option "TapDrift" "6"
+}
+
+Engine anchor {
+	Option "BorderWidthPercent" "5"
+}
+
+### Global mode
+
+# First, the strokes for the global mode
+Mode "__GLOBAL__" {
+  Key BackSpace, OrientationCorrection 180 = { grid("654") doc("654") }
+  Key Return = { grid("3[26]?5[48]?7?") doc("357") }
+  Key Control_L 	  = { grid("9?87?41?23?") doc("9823") }
+  Key Meta_L = {
+	grid("([89]*[56][123]+|[89][365][123]*)(([123]+[456]+[789]*|[456]+[789]+)[56]*[123]+|[456]*[89]+[456]+[123]*)([123]*[45][78]+|[123]+[45][78]*)")
+	doc("96[23]5[58]8[58]5[12]47")
+  }
+
+  # Full-screen bottom-to-top gives help
+  Exec "xstroke-help" = {
+	grid("852")
+	anchor("852")
+  }
+
+  # Bit of a kludge to be including keybindings for ion here, but I like 'em.
+  Key Super_L, Key s = {
+	grid("456")
+	anchor("456")
+  }
+  Key Super_L, Key k, Key s = {
+	grid("258")
+	anchor("258")
+  }
+  Key Super_L, Key k, Key x = {
+	grid("7[48]?5[26]?3")
+	anchor("7[48]?5[26]?3")
+  }
+}
+
+# And some convenient fallbacks, (like __GLOBAL__ except they can be overridden)
+Mode "__FALLBACK__" {
+  Key space, OrientationCorrection 0 =  { grid("456") doc("456") }
+
+  # Pass short taps through as a button press
+  Button 1 = { grid("5") doc("5") }
+}
+
+### NEWPAGE
+
+### Letter mode [abc]
+
+# Next, the letters. By default, letter mode gets backwards numbers,
+# but none of the backtracking capitals.
+
+Mode "abc" : "numbers_in_letter_mode",
+	     "punctuation_in_letter_mode",
+	     "no_capitals_in_lowercase_mode"
+{
+# Return needs some strengthening in terms of precedence
+Key Return = grid("3[26]?5[48]?7?")
+
+ModeShift "Abc", Key Shift_L, OrientationCorrection -90 = {
+	grid("852")
+	doc("852")
+}
+ModeShift "123" = {
+	grid("9[68]?5[24]?1?")
+	doc("951")
+}
+ModeShift "!@#" = {
+	grid("1[24]?5[68]?9")
+	doc("159")
+}
+
+### NEWLINE
+
+# Direction strokes are placed here for precedence
+Key Up	 = grid("8525")
+Key Down = grid("2585")
+Key Right = grid("4565")
+Key Left = grid("6545")
+
+# These two need precedence over a
+# 1 as up-down
+Key 1 = grid("8?5258")
+# bar as up-down-up
+Key bar	 = grid("8?5(25?)?8?52?5?")
+# stylized A
+Key a = {
+	grid("[78]?[45]5?1?(23?[56]6?|4?5)8?9?8?")
+	doc("729:straight")
+}
+# lowercase a
+Key a = {
+	grid("6?(3?25?|32?5?)1?4([748]+56?|7?4?8[96]6?)[23]*(3[56][89]?8?|3?(6[89]|598?))")
+	doc("3286[36]3[36]69")
+}
+
+# B with optional bar
+Key b = {
+	grid("([12]*[45][78]|[12][45]+[78]?)?[78]*[4]*(1?[2][369]+|1[25][369]*)([369]+[25]+8?[147]?[258]*[369]+|[25]*8?[147]+[258]+[369]*)([369]*[58][74]+|[369]+[58][74]*)")
+	doc("125[45]4[45]587")
+	doc("74125[45]4[45]587")
+	doc("14[47]7[47]4125[45]4[45]587")
+}
+	
+# lowercase b
+Key b = {
+	grid("[21][21]?[54]4?[78]+4?8?58?[69]9?87?4?")
+	doc("14[47]7[47]587")
+}
+
+# the letter c
+Key c = {
+	grid("6?3?2[15]?47?[58]8?9?6?")
+	doc("3289")
+}
+
+# T deserves precedence over D for 123698
+# stylized T as right->down
+Key t = grid("123698")
+
+# D shape with optional bar
+Key d = {
+	grid("(([12]?[45]+|9?8)?[78][45]*)?1?23?6(5?8[47]|9[58]8?)7?4?")
+	doc("1287")
+	doc("741287")
+	doc("14[47]7[47]41287")
+}
+
+# lowercase d starting with bar
+Key d = {
+	grid("(3?6(56)?|26?5(6[89]+)?|23?6?9)[89]*[658]*[32]*[254]+[47]7?89?6?")
+	doc("36[69]9[69][58]9")
+}
+
+# lowercase d starting with circle
+Key d = {
+	grid("9?6?[25]+[47]7?[258]+9?[256]?[23]+[56]*9?[89]*")
+	doc("[69][58]963")
+	doc("[69][58]96[36]3[36]69")
+}
+
+# stylized E shape like a mirror-image of a 3
+# This is simply the the mirror-image of the B stroke
+Key e = {
+	grid("([36]?[25][147]+|[36][215][147]*)([147]+[258]+([36]?[258]*|9[658]+)[147]+|[258]*([36]+[25]+|9[658]+)[147]*)([147]*8[96]6?|[147]+8[96]*)")
+	doc("325[56]6[56]589")
+}
+
+# lowercase e shape
+Key e = {
+	grid("1?[47]?2?[58]?2?6?3?21?4[57]?89?6?")
+	doc("45524[78][89]")
+}
+
+# stylized F shape with optional initial curl
+Key f = {
+	grid("6?3?21?47")
+	doc("[23]2[12][14]47")
+	doc("[25][12][14]47")
+}
+
+Key f = {
+	grid("741?23")
+	doc("7412[23]")
+}
+
+# i and I need precedence over g and G
+# I as vertical downward stroke
+Key i, OrientationCorrection 90 = grid("258")
+
+# G shape (in-only at end)
+Key g = {
+	grid("3?21?5?45?7?89?((6?5[478]+?5?|68[47]*)|85[47]*)")
+	doc("[23]24865")
+}
+
+# G shape (in-and-out at end)
+Key g = {
+	grid("3?21?5?45?7?89?((6?5[478]+?5?|68[47]*)|85[47]*)?[258]*6?9?")
+	doc("[23]2486[56]5[56]6")
+}
+
+# lowercase g shape with tail to left
+Key g = {
+	grid("3?21?2?[45]1?[256]+[32]+[56]+(98?7?|87)4?")
+	doc("32[25][36]3[36][69][58]")
+}
+
+# typical lowercase h
+Key h = {
+	grid("[12]1?47[478]*[56][68]?9?")
+	doc("14[47]7[47][58]8")
+}
+
+# i is defined above (before G)
+Key i = { doc("258") }
+
+# stylized J shape as backwards L
+Key j = {
+	grid("3?69?8[74]4?")
+	doc("3698[78]")
+}
+
+# loopy sort of k-like shape
+Key k = {
+	grid("(3[26]?|3?[26])([58]8?)([48][57])?[47](1[24])?[57]?[68]?9")
+	doc("3[56][58][45][25][56]9")
+}
+
+# L shape
+Key l = {
+	grid("1?47?89")
+	doc("1478[89]")
+}
+
+# M shape or lowercase m with optional initial down-stroke
+Key m = {
+	grid("([12]*[45]|[12][45]*)?([78]*[45][123]+|[78][145][123]*)(([123]+[456]+[789]*|[456]+[789]+)[45]*[123]+|[456]*[78]+[456]+[123]*)([123]*[56][98]+|[123]+[56][98]*)")
+	doc("7[12]8[23]9:straight")
+	doc("74[12]5[58]8[58]5[23]69")
+	doc("14[47]7[47]4[12]5[58]8[58]5[23]69")
+}
+
+# N shape starting at lower-left
+Key n = {
+	grid("([87]*[45]5?[12]+|[87]+[45]5?[12]*)([456]*[789]+|[12][45]5?[789]*)[56]6?3?2?")
+	doc("7193:straight")
+}
+# lowercase n
+Key n = {
+	grid("[12]*4(74)?1?23?[56]6?9?")
+	doc("14[47]7[47]4269")
+}
+
+# O as counter-clockwise circle starting at top
+Key o = {
+	grid("3?(21?[54][45]?7?89?63?2?|2?1?[54]4?7?89?63?2)1?4?")
+	doc("248622")
+}
+
+# custom P with just the curved part, drawn backwards, (like backwards D)
+Key p = {
+	grid("7?89?63?21?4?")
+	doc("7821")
+}
+
+# lowercase P with up-stroke or down-up stroke vertical bar
+Key p = {
+	grid("([12]*[456]+|[12][456]*)?[789]*[45]+1?2[36]6?(2?52?[14]*|[25]*41?)")
+	doc("741254")
+	doc("14[47]7[47]41254")
+}
+
+# Q as counter-clockwise circle starting at bottom
+Key q = {
+	grid("4?7?([48][59]?63?2[15]?[45][57]?8?|[48]?[59]?63?2[15]?[45][57]?8)(96?)?")
+	doc("862488")
+}
+
+# This next one never seems to work well... :-(
+# lowercase q with tail to the right
+#Key q = grid("3?2?[14]+[25]+[23]?[56][89]+")
+
+# Also, it's not defined until no_capitals_in_lowercase_mode, but I'll
+# display it here:
+Key q = { doc("24862123") }
+
+# lowercase r
+Key r = {
+	grid("([12]*[45]|[12][45]*)[78]*4?1?23?")
+	doc("14[47]7[47]423")
+}
+
+# R shape
+Key r = {
+	grid("([12]*4)?[78]*[45]+[12]2?([36]*[25]+[14]|[36]+[258]+)([14]*[25]*6?9|[14]+7?[258]+[69]?)")
+	doc("74125[45]4[45]5[89]")
+	doc("14[47]7[47]4125[45]4[45]5[89]")
+}
+Key r = grid("([12]*4)?[78]+[45]+[12]2?[36]*[258]+([14]*[25]*6?9|[14]+7?[258]+[69]9?)")
+
+# your basic S shape
+Key s = {
+	grid("6?3?25?([369]+(58)?8?7?4?|[14]+[25]*(5[25]*[369]*5?87?4?|[369]*874?))")
+	doc("325698")
+}
+
+# stylized T as right->down
+Key t = {
+	grid("1?23?65?[98]8?")
+	doc("[12]2369")
+}
+
+# U shape (no tail)
+Key u = {
+	grid("1?47?89?63?2?")
+	doc("148633")
+}
+
+# u shape (down-only tail)
+Key u = {
+	grid("1?47?89?[26]3?2?[56]+9?")
+	doc("1486[36]3[36]69")
+}
+
+# V shape
+Key v = {
+	grid("1?[245]5?[78]8?[49]?[256]+3?")
+	doc("183:straight")
+}
+
+# V as backwards U
+Key v = {
+	grid("3?6?[56](8|987)7?[45]*41?")
+	doc("381:straight")
+	doc("368411")
+}
+
+
+# w or W shape
+# w definition is deferred until after y for precedence
+Key w = { doc("14[78]5[25]2[25]5[89]63") }
+
+# loopy sort of x-like shape
+Key x = {
+	grid("1?([24]?5|[24]7)([68][59])?6(3[256]1?)?[59]?[48]?7")
+	doc("1[45][58][56][25][45]7")
+}
+
+# y shape (down-only tail)
+Key y = {
+	grid("12?[45]+1?6?[23]+[56]*[89]+")
+	doc("2[25][36]3[36]69")
+}
+
+# y shape (down-up tail)
+Key y = {
+	grid("12?[45]+1?6?[23]+[56]*[89]+7?8?9?[456]*[23]*")
+	doc("2[25][36]3[36]69[89][56]6")
+}
+
+# w is defined here after y for precedence
+Key w = grid("([12]*[45][789]+|[12][745][789]*)(([78]+[45]+[123]*|[45]+[12]+)[456]*[789]+|[45]*[12]+[456]+[789]*)([789]*[56]+[32]+|[789]+[56]+[32]*)")
+
+# basic z shape
+Key z = {
+	grid("1?2(3[26]?5[48]?7?|3?[26]?5[48]?7)89?")
+	doc("1379:straight")
+}
+
+# These are defined up above the letters for precedence
+Key Up	 = doc("8525")
+Key Down = doc("2585")
+Key Right = doc("4565")
+Key Left = doc("6545")
+
+### NEWPAGE
+}
+
+Mode "Abc":"abc"
+{
+    ModeLock "ABC", Key Caps_Lock, OrientationCorrection -90 = grid("852")
+}
+
+Mode "ABC":"abc"
+{
+    ModeLock "abc", OrientationCorrection -90 = grid("852")
+}
+
+Mode "123":"!@#"
+{
+### Number mode [123]
+
+# Need to override Return so it has precedence over ',' from [!@#]
+Key Return = grid("3[26]?5[48]?7?")
+
+ModeShift "!@#" = {
+	grid("1[24]?5[68]?9")
+	doc("159")
+}
+ModeLock "*123*" = grid("9[68]?5[24]?1?")
+
+# In number mode we get to use the standard number shapes.
+# standard 0
+Key 0 = {
+	grid("3?2?1?[54][45]?7?89?6[32]+1?4?")
+	doc("248622")
+}
+Key 0 = {
+	grid("1?2?3?[56][56]?9?87?41?2?3?6?")
+	doc("268422")
+}
+# standard 1
+Key 1= {
+	grid("258")
+	doc("258")
+}
+# 7 needs precedence over 2 for 123658
+# standard 7 as T
+Key 7 = grid("1?23?([26]?5[48]?7?|65?[98]8?9?)")
+# standard 2
+Key 2 = {
+	grid("1?23?[26]?5[48]?([47]*?[58]+|47?[58]*)[69]*")
+	doc("12578[89]")
+}
+Key 2 = grid("1?23?6[59]8[47]*[58]+[69]*")
+# standard 3
+Key 3 = {
+	grid("4?(1?[2][369]+|1[25][369]*)([369]+[25]+[147]?[258]*[369]+|[25]*[147]+[258]+[369]*)([369]*[58][74]+|[369]+[58][74]*)")
+	doc("125[45]4[45]587")
+}
+# standard 4 (as L)
+Key 4 = {
+	grid("1?47?89?6?")
+	doc("14789")
+}
+# standard 4 (like the y stroke)
+Key 4 = {
+	grid("12?[45]+1?6?[23]*[56]*[89]+")
+	doc("2[25][36]3[36]69")
+}
+# standard 5
+Key 5 = {
+	grid("6?3?[25]?5?[14]*[25]*[69]+[58]*87?4?")
+	doc("325698")
+	doc("255698")
+}
+# standard 6
+Key 6 = {
+	grid("3?[26]?[15]?[45][57]?8[59]?6?9?[58]+[47]*1?")
+	doc("24854")
+}
+# 7 is defined above (before 2)
+Key 7 = {
+	doc("12357:straight")
+	doc("[12]2369")
+}
+# a figure-eight
+Key 8= {
+	grid("3?2[14]?4?[25]+[69]?9?87?[4598]+[12356]*")
+	doc("325698563")
+}
+# basic 9-shape
+Key 9 = {
+	grid("3?21?2?[45]*[789]*1?[256]+[32]+[56]+[89]*7?")
+	doc("32[25][36]3[36]69")
+}
+
+### NEWPAGE
+}
+
+Mode "*123*":"123"
+{
+    ModeLock "abc" = grid("9[68]?5[24]?1?")
+}
+
+Mode "!@#":"punctuation_in_letter_mode"
+{
+### Punctuation mode [!@\#]
+
+ModeLock "abc" = {
+	grid("1[24]?5[68]?9")
+	doc("159")
+}
+
+Key period = {
+	grid("5")
+	doc("5")
+}
+
+Key comma  = {
+	grid("3[26]?5[48]?7?")
+	doc("357")
+}
+
+Key quoteright,	OrientationCorrection 90 = {
+	grid("258")
+	doc("258")
+}
+
+Key quotedbl = {
+	grid("([87]*[45]5?[12]+|[87]+[45]5?[12]*)([456]*[789]+|[12][45]5?[789]*)[56]6?3?2?")
+	doc("7415963:straight")
+}
+
+Key less = {
+	grid("9?8[75]?4[15]?23?")
+	doc("842:straight")
+}
+
+Key greater = {
+	grid("7?8[59]?6[35]?21?4?")
+	doc("862:straight")
+}
+
+Key bracketleft = {
+	grid("(9?[8][147]+|9[58][147]*)([147]+[58]+[69]?[258]*[147]+|[58]*[69]+[258]+[147]*)([147]*[25][36]+|[147]+[25][36]*)")
+	doc("985[56]6[56]523")
+	doc("[89]8741")
+}
+
+Key bracketright= {
+	grid("(7?[8][369]+|7[58][369]*)([369]+[58]+[47]?[258]*[369]+|[58]*[47]+[258]+[369]*)([369]*[25][14]+|[369]+[25][14]*)")
+	doc("[78]8963")
+	doc("785[45]4[45]521")
+}
+
+Key minus, OrientationCorrection 0 = {
+	grid("456")
+	doc("456")
+}
+
+Key slash = {
+	grid("7[48]?5[26]?3")
+	doc("753")
+}
+
+# XXX: this stroke doesn't work very well yet
+Key question = {
+	grid("4?1?23?[26]?54?7?")
+	doc("12547")
+}
+
+Key exclam, OrientationCorrection -90 = {
+	grid("852")
+	doc("852")
+}
+
+Key braceleft = {
+	grid("6?([36]?[25][147]+|[36][215][147]*)([147]+[258]+([36]?[258]*|9[658]+)[147]+|[258]*([36]+[25]+|9[658]+)[147]*)([147]*[58]9?6?|[147]+[58][96]*)")
+	doc("325[56]6[56]589")
+	doc("9874[14]1[14]47")
+}
+
+Key braceright = {
+	grid("4?([14]?[25][369]+|[14][235][369]*)([369]+[258]+([14]?[258]*|7[458]+)[369]+|[259]*([14]+[25]+|7[458]+)[369]*)([369]*[58]7?4?|[369]+[58][74]*)")
+	doc("7896[36]3[36]69")
+	doc("125[45]4[45]587")
+}
+Key braceright = grid("1?23?[26]?5[48]?7?89?[58]+[47]*8?")
+
+Key numbersign = {
+	grid("147[48]?5[26]?369")
+	doc("1475369:straight")
+}
+
+Key parenleft = {
+	grid("6?3?2[15]?47?[58]8?9?6?")
+	doc("248")
+}
+
+Key parenright = {
+	grid("1?2[35]?6[59]?87?4?")
+	doc("268")
+}
+
+Key dollar = {
+	grid("6?3?25?([369]+(58)?8?7?4?|[14]+[25]*(5[25]*[369]*5?87?4?|[369]*874?))")
+	doc("325698")
+}
+
+Key dollar = grid("6?3?25?15?4(7?[58]8?9?6?|[78]+9?6?9?)87?")
+
+Key backslash = {
+	grid("9[68]?5[24]?1?")
+	doc("951")
+}
+
+Key plus = {
+	grid("(3[26]?|3?[26])([58]8?)([48][57])?[47](1[24])?[57]?[68]?9")
+	doc("3[56][58][45][25][56]9")
+}
+
+Key equal = {
+	grid("1?2(3[26]?5[48]?7?|3?[26]?5[48]?7)89?")
+	doc("1235789:straight")
+}
+
+Key equal = grid("(123?|23)((56?5?)?8[47]|5?6?9[58]8?)7?4?[58]+[69]*")
+
+Key underscore = {
+	grid("4?5654?")
+	doc("45[56]6[56]54")
+}
+
+Key asterisk = {
+	grid("1?([24]?5|[24]7)([68][59])?6(3[256]1?)?[59]?[48]?7")
+	doc("1[45][58][56][25][45]7")
+}
+
+Key bar = {
+	grid("8?5258?")
+	doc("85[25]2[25]58")
+}
+
+Key semicolon = {
+	grid("3?[26]?5[48]?7?[48]?5[26]?3")
+	doc("35[57]7[57]53")
+}
+
+Key colon = {
+	grid("2?5852?")
+	doc("25[58]8[58]52")
+}
+
+Key Tab	 = {
+	grid("741?23")
+	doc("7412[23]")
+}
+
+Key Escape = {
+	grid("369?[68]?[58][24]?1")
+	doc("36951:straight")
+}
+Key Escape = grid("3?6?[56](8|987)[745]*41?")
+
+# These five come last to avoid some precedence problems
+Key asciitilde = {
+	grid("3?69?[68]?[35]?[24]?147?")
+	doc("3695147:straight")
+}
+Key asciitilde = grid("3?6?[56](8|98)[7845]*41?2?[456]+[789]*")
+
+Key at	 = {
+	grid("3?(21?[54][45]?7?89?63?2?|2?1?[54]4?7?89?63?2)1?4?")
+	doc("248622")
+}
+
+Key at	 = {
+	grid("1?(23?[56][56]?9?87?41?2?|2?3?[56]6?9?87?41?2)3?6?")
+	doc("268422")
+}
+
+Key percent = {
+	grid("([12]*[45]+[789]+|[12][745]+[789]*)([78]*[45]*[123]*[456]*[789]+|[45]*[12]+[456]+[789]*)([789]*[56]+[32]+|[789]+[56]+[32]*)")
+	doc("1[45][78][47]5[69][89][56]3")
+	doc("183:straight")
+}
+
+Key ampersand = {
+	grid("3?2[14]?4?[25]+[69]?9?87?[4598]+[12356]*")
+	doc("325698563")
+}
+
+Key asciicircum = {
+	grid("[78]?[45]5?1?(23?[56]6?|4?5)8?9?8?")
+	doc("729:straight")
+}
+
+Key quoteleft = {
+	grid("9?[68]?5[24]?1?[24]?5[68]?9?")
+	doc("95[15]1[15]59")
+}
+
+}
+### NEWPAGE
+
+Mode "no_capitals_in_lowercase_mode"
+{
+# n instead of A
+Key n = grid("[78]?[45]5?1?(23?(56?[89]+[856]*[124]*|6[89]+[856]*[1234]*)|4?58?9?[856]*4?[12]+)")
+# s instead of C
+Key s = grid("6?3?25?15?4(7?[58]8?9?6?|[78]+9?6?9?)87?")
+# z instead of D
+Key z = grid("(123?|23)((56?5?)?8[47]|5?6?9[58]8?)7?4?[58]+[69]*")
+# r instead of D
+Key r = grid("[12]?([45][78]*4|[459]*[78]+[45]*)(123?|23)5?6?5?(8[47]|9[58]8?)7?4?[58]+[69]*")
+# g instead of G
+Key g = grid("3?21?2?[45]?1?[256]*[32]*[56]+(98?7?|87)4?[58]*2?[369]*")
+# w instead of H
+Key w = grid("[12]1?47[47]*8?[56]6?[89][56]*[23]*")
+# d instead of J
+Key d = grid("2?(3?69?8[74]4?|(3?6|2)59?8[74]4?)7?8[69]*")
+# b instead of L
+Key b = grid("1?47?89[58]*[47]*")
+# m instead of N
+Key m = grid("([87]*[45]5?[12]+|[87]+[45]5?[12]*)([456]*[789]+|[45]5?6?[789]*)[56]6?3?2?[56]+[89]*")
+# w instead of N
+Key w = grid("[12]*[45]+(7[45]+)(1?23?6|1[24][35]?6?|1[45]+8)9?[56]+[23]+")
+# q instead of O
+Key q = grid("3?([26][15]?[54]4?7?8[59]?[65]5?3?2?|[26]?[15]?[54]4?7?8[59]?[65]5?3?2)1?4?[25]+[36]*")
+# p instead of R
+Key p = grid("([12]*[45]|[12][45]*)?[78]*4?5?1?23?[25]+[14]*")
+# e instead of S
+Key e = grid("6?3?25?([369]+(58)?8?7?4?|[14]+[25]*(5[25]*[369]*5?87?4?|[369]*874?))[58]+[69]*")
+# w instead of U
+Key w = grid("1?47?8[59]?[26]3?2?6(9[56]+)?[23]*")
+# y instead of X
+Key y = grid("1?([24]?5|[24]7)([68][59])?6(3[256]1?)?3?5?[48]?78?9?[456]+[1236]*")
+# b instead of Z
+Key b = grid("1?2(3[26]?5[48]?7?|3?[26]?5[48]?7)89?[58]+[47]*8?")
+}
+
+Mode "capitals_in_lowercase_mode"
+{
+# stylized A shape
+Key A = grid("[78]?[45]5?1?(23?(56?[89]+[856]*[124]*|6[89]+[856]*[1234]*)|4?58?9?[856]*4?[12]+)")
+# a shape
+Key A = grid("6?(3?25?|32?5?)1?4([748]+56?|7?4?8[96]6?)[23]*(3[56][89]?8?|3?(6[89]|598?))[56]*[23]*")
+
+# B with optional bar
+Key B = grid("([12]*[45]+[78]|[12][45]+[78])?[78]*[45]*(1?[2][369]+|1[25][369]*)([369]+[25]+[147]?[258]*[369]+|[25]*[147]+[258]+[369]*)([369]*[58][74]+|[369]+[58][74]*)[58]+[69]*8?")
+# lowercase b shape
+Key B = grid("[21][21]?[54]4?[78]+4?8?58?[69]9?87?4?[58]*[69]*")
+
+# the letter c
+Key C = grid("6?3?25?15?4(7?[58]8?9?6?|[78]+9?6?9?)87?")
+
+# D shape with optional bar
+Key D = grid("(123?|23)((56?5?)?8[47]|5?6?9[58]8?)7?4?[58]+[69]*")
+Key D = grid("[12]?([45][78]*4|[459]*[78]+[45]*)(123?|23)5?6?5?(8[47]|9[58]8?)7?4?[58]+[69]*")
+# lowercase d starting with bar
+Key D = grid("(3?6(56)?|26?5(6[89]+)?|23?6?9)[89]*[658]*[32]*[15]?([47]+|[58]+)89?[69]+[58]+[47]+")
+# lowercase d starting with circle
+Key D = grid("9?6?[258]+[47]7?[258]+9?[256]?[23]+[56]*9?[89]*[56]+[23]*")
+
+# stylized E shape like a mirror-image of a 3
+# This is simply the the mirror-image of the B stroke
+Key E = grid("([36]?[25][147]+|[36][215][147]*)([147]+[258]+([36]?[25]*|9[658]+)[147]+|[258]*([36]+[25]+|9[658]+)[147]*)([147]*8[96]6?|[147]+8[96]*)[58]+[47]*8?")
+# e shape
+Key E = grid("1?[47]?2?[58]?2?6?3?[25]+1?4[57]?89?6?[58]+[47]*")
+
+# stylized F shape with optional initial curl
+Key F = grid("6?3?21?478?7?[45]*[12]*")
+
+# i and I need precedence over g and G
+# I as vertical downward stroke
+Key I = grid("2?58?52")
+
+# G shape (in-and-out-and-in at end)
+Key G = grid("3?21?5?45?7?89?((6?5|68)|85)([47]+[258]+([369]+[258]+)?|[47]*[258]+([369]+[258]+))[147]*")
+# lowercase g shape with tail to left
+Key G = grid("3?21?2?[45]1?[256]+[32]+[56]+(98?7?|87)4?[58]*[69]*")
+
+# typical lowercase h
+Key H = grid("[12]1?47[47]*8?[56]6?[89][56]*[23]*")
+
+# i is defined above (before G)
+
+# stylized J shape as backwards L
+Key J = grid("2?(3?69?8[74]4?|(3?6|2)59?8[74]4?)7?8[69]*")
+
+# loopy sort of k-like shape
+Key K = grid("(3[26]?|3?[26])([58]8?)([48][57])?[47]+(1[24]3?)?1?[57]?[68]?9[568]+([12347]|5)[1245]*")
+
+# L shape
+Key L = grid("1?47?89[58]*[47]*")
+
+# M shape or lowercase m with optional initial down-stroke
+Key M = grid("([12]*[45]|[12][45]*)?([78]*[45]+[123]+|[78][145]+[123]*)(([123]+[456]+[789]*|[456]+[789]+)[456]*[123]+|[456]*[789]+[456]+[123]*)([123]*[56]+[98]+|[123]+[56]+[98]*)[56]+[23]*")
+
+# N shape starting at lower-left
+Key N = grid("([87]*[45]5?[12]+|[87]+[45]5?[12]*)([456]*[789]+|[45]5?6?[789]*)[56]6?3?2?[56]+[89]*")
+# n shape
+Key N = grid("[12]*[45]+(7[45]+)(1?23?6|1[24][35]?6?|1[45]+8)9?[56]+[23]+")
+
+# O as counter-clockwise circle starting at top
+Key O = grid("3?([26][15]?[54]4?7?8[59]?[65]5?3?2?|[26]?[15]?[54]4?7?8[59]?[65]5?3?2)1?4?[25]+[36]*")
+
+# custom P with just the curved part, drawn backwards, (like backwards D)
+Key P = grid("7?8[59]?63?[52]2?([14]4?[25]+3?|[25]+3)")
+# P with up-stroke or down-up stroke vertical bar
+Key P = grid("([12]*[456]+|[12][456]*)?([789]*4|[789]+[45]+)1?2[36]?(6|(6?(2?5|25?)2?8?[147]*|[25]*8?1?41?7?))[25]+[36]*")
+
+# Q as counter-clockwise circle starting at bottom
+Key Q = grid("4?[57]?([48][59]?63?2[15]?[45][57]?|[48]?[59]?63?2[15]?[45][57]?)(87|8?9?6?9[58]+[47]*[58]*)")
+
+# lowercase r
+Key R = grid("([12]*[45]|[12][45]*)[78]*4?5?1?23?[25]+[14]*")
+# R shape
+Key R = grid("([12]*4)?[78]*[45]+[12]2?([369]*[25]+[14]|[369]+[258]+)([147]*[258]*[68]?9|[147]+[258]+[68]?9?)[68]?[57][24]?1?4?")
+
+# your basic S shape
+Key S = grid("6?3?25?([369]+(58)?8?7?4?|[14]+[25]*(5[25]*[369]*5?87?4?|[369]*874?))[58]+[69]*")
+
+# stylized T as right->down
+Key T = grid("1?23?65?([23]+|[98]8?9?)[56]+[23]*")
+
+# u shape (down-up tail)
+Key U = grid("1?47?8[59]?[26]3?2?6(9[56]+)?[23]*")
+
+# V shape
+Key V = grid("1?[245]5?[78]8?[49]?[256]+3[56]*9?8")
+Key V = grid("1?[245]5?8[49]?[256]+3[56]*9?8?")
+Key V = grid("1?[245]5?78?[49]?[56]*[23]+[56]*9?87?")
+# V as backwards U
+Key V = grid("3?6?[56](8|987)[7845]*41?2?[456]+[789]*")
+Key V = grid("3?6?[56](8|98)[745]*41?2?[456]+[89]*")
+
+# w or W shape
+Key W = grid("([12]*[45][789]+|[12][745][789]*)(([78]+[456]+[123]*|[45]+[12]+)4?5?6?[789]+|[45]*[12]+[456]+[789]*)([789]*[569]+[32]+|[789]+[569]+[32]*)[56]*[89]*")
+
+# loopy sort of x-like shape
+Key X = grid("1?([24]?5|[24]7)([68][59])?6(3[256]1?)?3?5?[48]?78?9?[456]+[1236]*")
+
+# y shape (down-up-down tail)
+Key Y = grid("1?2?[45]+1?([789]+[45]*)?6?[23]+[56]*[89]+7?8?[456]+([23]+[56]+)?[89]*9[89]*")
+
+# basic z shape
+Key Z = grid("1?2(3[26]?5[48]?7?|3?[26]?5[48]?7)89?[58]+[47]*8?")
+}
+
+Mode "numbers_in_letter_mode"
+{
+### ADVANCED: Numbers in letter mode [abc]
+# 0 as clockwise circle
+Key 0 = {
+	grid("1?2?3?69?87?41?2?3?")
+	doc("268422")
+}
+
+# 1 is defined way up above A
+Key 1 = { doc("85[25]2[25]58") }
+
+# 2 drawn backwards (starting at bottom)
+Key 2 = {
+	grid("9?8([74][48]?[58]9?[26]?3?|7?[48]?[58]9?[26]?[63]3?)21?4?")
+	doc("[89]87521")
+}
+
+# 3 drawn backwards (starting at bottom)
+Key 3 = {
+	grid("(7?[8][369]+|7[58][369]*)([369]+[58]+[47]?[258]*[369]+|[58]*[47]+[258]+[369]*)([369]*[25][14]+|[369]+[25][14]*)")
+	doc("785[45]4[45]521")
+}
+
+# 4 as y drawn backwards, (starting at bottom)
+Key 4 = {
+	grid("[89]9?5?65?36?9?(87?4|54?)1?2?")
+	doc("96[36]3[36][25]2")
+}
+
+# 6 needs precedence over 5
+# 6 drawn backwards (starting at circle)
+Key 6 = grid("7?4?[58][69]*87?4[15]?2?3?")
+
+# 5 drawn backwards (starting at bottom)
+Key 5 = {
+	grid("([47]*[58]5?[69]+|[47]+[58]5?[69]*)([58]*[147]+(25)?|[58]+[147]*5?2)23?6?")
+	doc("896523")
+}
+
+Key 6 = doc("[47][58]842")
+
+# 7 drawn backwards (starting at bottom)
+Key 7 = {
+	grid("963?21")
+	doc("9632[12]")
+}
+
+# standard 8
+Key 8 = {
+	grid("3?2[14]?4?[25]+[69]9?87?[4598]+[12356]*")
+	doc("325698563")
+}
+# 8 drawn backwards
+Key 8 = {
+	grid("1?2[36]?6?[25]+[47]7?89?[5678]+[12345]*")
+	doc("236589652")
+}
+
+# 9 drawn backwards (starting with circle)
+Key 9 = {
+	grid("3?6?(5[41]*|2[41]*4[41]*)23?69?8?9?")
+	doc("[36][25]2369")
+}
+
+# 9 drawn backwards (starting with tail)
+Key 9 = {
+	grid("[789]*[56]+3?2[14]4?(2?52?[36]*|[25]*63?)")
+	doc("9632[25][36]")
+}
+
+}
+
+Mode "punctuation_in_letter_mode"
+{
+### ADVANCED: Punctuation in letter mode [abc]
+
+Key Escape = {
+	grid("369?[68]?[58][24]?1")
+	doc("36951:straight")
+}
+
+
+Key Tab	 = {
+	grid("741?2(32)?1?")
+	doc("7412[23]21")
+}
+
+Key period = {
+	grid("65456")
+	doc("65[45]4[45]6")
+}
+
+Key comma = {
+	grid("3?2123?[26]?5[48]?7?")
+	doc("32[12]1[12]357")
+}
+
+Key colon = {
+	grid("3?2(12)?3?6[89]+")
+	doc("32[12]1[12]369")
+}
+
+Key exclam = {
+	grid("2?5(85?)?2?58?5?")
+	doc("25[58]8[58]5258")
+}
+
+Key minus = {
+	grid("45654")
+	doc("45[56]6[56]54")
+}
+
+# XXX: I replaced this with 'e'. Need a new stroke here...
+Key equal = {
+	grid("1?2(32)?1?47?89?")
+	doc("12[23]3[23]289")
+}
+
+Key question = {
+	grid("1?23?21?[45][78]+")
+	doc("12[23]3[23]2147")
+}
+
+Key underscore = {
+	grid("4?5(65)?456?")
+	doc("45[56]6[56]5456")
+}
+
+# XXX: need to combine
+Key plus = grid("2587456")
+Key plus = grid("1458?[74]4?56")
+Key plus = grid("1?258?[74]4?56")
+Key plus = grid("2?3[56]9?87?456?")
+
+# bar is defined way up above A for precedence
+Key bar = { doc("85[25]2[25]5852") }
+Key bar	 = grid("7?4147?89")
+Key bar	 = grid("9?6369?87")
+
+Key bracketleft = {
+	grid("987?41")
+	doc("98741")
+}
+
+Key bracketright = {
+	grid("789?63")
+	doc("78963")
+}
+
+Key braceleft = {
+	grid("(654?|987?4)14[78]?")
+	doc("9874[14]1[14]47")
+}
+
+Key braceright = {
+	grid("(456?|789?6)36[89]?")
+	doc("7896[36]3[36]69")
+}
+
+Key less = {
+	grid("987[48]?5[26]?3?")
+	doc("-98753")
+}
+
+Key greater = {
+	grid("789[68]?5[24]?1?")
+	doc("-78951")
+}
+
+Key parenleft = {
+	grid("9?[68]?5([24]?1|[24]1?)2[36]*")
+	doc("95123:straight")
+}
+
+Key parenright = {
+	grid("7?[48]?5([26]?3|[36]3?)2[14]*")
+	doc("75321:straight")
+}
+
+Key quoteright = {
+	grid("7[48]?5[26]?3?[26]?5[48]?7?")
+	doc("75[35]3[35]57")
+}
+Key quoteright = grid("7?[48]?5[26]?3?[26]?5[48]?7")
+
+Key quoteleft = {
+	grid("1[24]?5[68]?9?([68]?5[24]?|84)1?")
+	doc("15[59]9[59]51")
+}
+Key quoteleft = grid("1?[24]?5[68]?9?([68]?5[24]?|84)1")
+
+Key quotedbl = {
+	grid("147[48]?54?5?[26]?32?3?69")
+	doc("1475369:straight")
+}
+
+Key semicolon = {
+	grid("3?[26]?5[48]?7?[48]?5[26]?3")
+	doc("35[57]7[57]53")
+}
+
+Key slash = {
+	grid("7[48]?5[26]?3")
+	doc("753")
+}
+
+# XXX: need something else for backslash if this will be puncshift
+#Key backslash = grid("1[24]?5[68]?9")
+
+Key percent = {
+	grid("([32]*[56]+[789]+|[32][569]+[789]*)([89]*[56]*[123]*[456]*[789]+|[56]*[23]+[456]+[789]*)([789]*[45]+[12]+|[789]+[45]+[12]*)")
+	doc("3[56][89][69]5[47][78][45]1")
+}
+
+Key asciicircum = {
+	grid("8?9[68]?5?[34]?(2?1?[54]4?|6?5)[78]*")
+	doc("927:straight")
+}
+
+Key numbersign = {
+	grid("9?63?[26]?56?5?[48]?741?")
+	doc("9635741:straight")
+}
+
+Key asciitilde = {
+	grid("3?69?[68]?5?[24]?147?")
+	doc("3695147")
+}
+
+# XXX: what stroke do we want for asterisk?
+Key asterisk    = grid("7[48]?[15]([26][53])?6(9[568]7?)?[53]?[24]?1")
+
+Key ampersand = {
+	grid("9[68]?5?[24]?1?47?89?")
+	doc("9514789")
+}
+
+Key at	 = {
+	grid("2?589?63?21?47?8?9?[89]?")
+	doc("55862488")
+}
+
+# XXX: right now, dollar conflicts with 8
+Key dollar = grid("3?2[14]?4?[58]+[69]?9?874[12][12]?")
+
+### NEWPAGE
+}

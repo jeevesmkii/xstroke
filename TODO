@@ -1,0 +1,94 @@
+xstroke TODO (in no particular order).
+
+Add a yyprint to rec_parse.y for better error messages for broken
+config files.
+
+Support for multi-stroke characters. Maybe a Prefix option in the
+configuration file? Maybe a timeout for a prefix character to resolve
+to its own character, (or a separation theshold).
+
+Maybe: tap could be recognized different ways depending on if the
+window of interest has focus, (punc-shift) or not (mouse click). I
+have no idea if this will work or not.
+
+properties to control whether xstroke owns the grab or not:
+
+        RECOGNIZE_PROTOCOLS, LISTofATOM
+                RECOGNIZE_RAW
+                RECOGNIZE_KEY
+                RECOGNIZE_BUTTON
+                RECOGNIZE_UTF8
+                RECOGNIZE_NAMED
+                ...
+
+xstroke binary needs a version number.
+
+Add a drop-down menu for selecting modes.
+
+Write an alphabet viewer utility (help mode).
+
+The graying-out of the control window is far too subtle. Probably time
+to draw some icons.
+
+Add accented characters to the default alphabet, (as well as other
+interesting international characters).
+
+Split the frontend off into a separate program that talks with recd
+through an IPC mechanism, provided by a convenient librec API.
+
+Come up with a way that individual applications can have custom
+stroke->action bindings. This will probably depend on the recd work
+mentioned above being done first.
+
+Write a configuration/training utility.
+
+Sound effects?
+
+Different stroke colors, configurable on per-mode basis.
+
+Mode-specific pixmaps in the control window.
+
+A "correct stroke" for teaching it what the stroke that just went
+unrecognized should have been.
+
+Auto-prompting of possible stroke completions if the user pauses
+mid-stroke.
+
+Fix Caps_Lock handling for Xkb-aware servers, (see comments in
+xstroke.c:key_action_cb).
+
+Some comments from Ken Steele (steele@lcs.mit.edu) along with my
+replies:
+
+ > 9) In punctuation mode, a slash down to the left should be an X. This is a clever wa\
+y
+ >    to allow a two stroke 'x', which is what is done on the palm.
+
+Ah, I had seen that on the diagram, but it hadn't clicked with me what
+they were doing.
+
+Problem is that this clashes with a graffiti style ','. The cause of
+the clash is that graffiti has two punctuation modes, ('.', and '\').
+
+ > 10) In punctuation mode, most of my '?'s become '='. I draw the vertial tail in the \
+middle
+ >     more than on the left. When I look at the diagrams, I can draw the vertical tail\
+ to
+ >     the left, but I don't do that naturally.
+
+Noted. This one is problematic. Someday I'll write a real recognizer I
+think. *sigh*
+
+ > 8) On my palm, I can tap very quickly, but on the ipaq, very quick taps, even
+ > ones that make a loud noise, are missed. Can this be fixed?
+
+I hope so. In these cases xstroke is not even getting mouse events so
+there's nothing I can do about it that way. I'm guessing that the
+touchscreen driver in the kernel might be filtering these out. I'll do
+some investigating to try to track this down.
+
+The first thing to do is turn X off and look at the touchscreen
+devices, (both raw and filtered), to see if these short taps are
+making it through the kernel.
+
+
